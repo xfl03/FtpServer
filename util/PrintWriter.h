@@ -8,5 +8,5 @@ private:
     OutputStream* os;
 public:
     PrintWriter(OutputStream* os);
-    void write(const std::string& str);
+    void write(std::string str);
 };

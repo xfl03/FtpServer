@@ -1,14 +1,20 @@
 #pragma once
 
+#include <string>
 #include "../io/InputStream.h"
 #include "../io/OutputStream.h"
 
-class Socket{
+class Socket {
 private:
     int fd;
 public:
     Socket(int fd);
-    InputStream* getInputStream();
-    OutputStream* getOutputStream();
+
+    Socket(std::string ip, int port);
+
+    InputStream *getInputStream();
+
+    OutputStream *getOutputStream();
+
     void close();
 };
