@@ -1,9 +1,11 @@
 #pragma once
-class OutputStream {
+#include <string>
+class FileOutputStream {
 private:
     int fd;
 public:
-    OutputStream(int fd);
+    FileOutputStream(int fd);
+    FileOutputStream(std::string name);
     void write(int b);
     void write(const char* b,int offset, int len);
 };

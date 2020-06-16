@@ -26,7 +26,7 @@ Socket *ServerSocket::accept() {
     auto addr = new sockaddr_in;
     socklen_t length = sizeof(sockaddr_in);
     int new_fd = accept0(fd, (sockaddr *) addr, &length);
-    return new Socket(new_fd);
+    return new Socket(new_fd, new InetAddress(addr->sin_addr.s_addr));
 }
 
 void ServerSocket::close() {
