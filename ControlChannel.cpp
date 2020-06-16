@@ -71,10 +71,10 @@ void ControlChannel::onCommand(std::string cmd, std::string arg) {
         socket->close();
         delete socket;
         socket = nullptr;
-    } else if (cmd == "list") {
+    } else if (cmd == "list" || cmd == "nlst") {
         sendResponse(150,
                      "Opening data channel for directory listing of \"" + file->dir + "\"");
-        data->sendList();
+        data->sendList(cmd == "nlst");
         sendResponse(226,
                      "Successfully transferred \"" + file->dir + "\"");
     } else if (cmd == "cwd") {
@@ -90,6 +90,8 @@ void ControlChannel::onCommand(std::string cmd, std::string arg) {
         } else {
             sendResponse(200, std::to_string(fs::file_size("./" + arg)));
         }
+    } else if (cmd == "opts") {
+        sendResponse(202, "!");
     } else {
         sendResponse(502, "?");
     }

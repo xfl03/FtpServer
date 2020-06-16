@@ -10,6 +10,8 @@ public:
     FileInputStream *is;
     FileOutputStream *os;
 
+    FileHelper();
+
     bool changeDir(std::string path);
 
     void preWrite(std::string name);

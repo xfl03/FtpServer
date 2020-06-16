@@ -61,18 +61,22 @@ void DataChannel::sendFile(std::string name) {
     close();
 }
 
-void DataChannel::sendList() {
+void DataChannel::sendList(bool name_only) {
     auto sb = new StringBuilder;
     for (const auto &entry : std::filesystem::directory_iterator("./" + file->dir)) {
-        if (entry.is_directory()) {
-            sb->append("drwxrwxrwx 1 1 ftp 0 ")
-                    ->append(DC::toTimeString(entry.last_write_time()))
-                    ->append(entry.path().filename().string());
+        if (name_only) {
+            sb->append(entry.path().filename().string());
         } else {
-            sb->append("-rwxrwxrwx 1 1 ftp ")
-                    ->append((int) entry.file_size())->append(" ")
-                    ->append(DC::toTimeString(entry.last_write_time()))
-                    ->append(entry.path().filename().string());
+            if (entry.is_directory()) {
+                sb->append("drwxrwxrwx 1 ftp ftp 0 ")
+                        ->append(DC::toTimeString(entry.last_write_time()))
+                        ->append(entry.path().filename().string());
+            } else {
+                sb->append("-rwxrwxrwx 1 ftp ftp ")
+                        ->append((int) entry.file_size())->append(" ")
+                        ->append(DC::toTimeString(entry.last_write_time()))
+                        ->append(entry.path().filename().string());
+            }
         }
         sb->append("\r\n");
     }

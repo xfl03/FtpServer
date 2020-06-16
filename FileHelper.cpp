@@ -3,6 +3,10 @@
 
 namespace fs = std::filesystem;
 
+FileHelper::FileHelper() {
+    dir = "/";
+}
+
 bool FileHelper::changeDir(std::string path) {
     std::string tmp;
     if (path[0] == '/') {

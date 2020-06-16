@@ -13,6 +13,6 @@ public:
     DataChannel(Socket *socket, FileHelper *file);
     void recvFile(std::string name);
     void sendFile(std::string name);
-    void sendList();
+    void sendList(bool name_only);
     void close();
 };
