@@ -4,7 +4,6 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
 auto close0 = close;
 
@@ -48,5 +47,13 @@ void Socket::close() {
 }
 
 InetAddress *Socket::getInetAddress() {
+    //getpeername
     return address;
+}
+
+InetAddress *Socket::getLocalAddress() {
+    auto addr = new sockaddr_in;
+    socklen_t length = sizeof(sockaddr_in);
+    getsockname(fd, (sockaddr *) addr, &length);
+    return new InetAddress(addr->sin_addr.s_addr);
 }

@@ -18,15 +18,20 @@ char Scanner::nextChar() {
 }
 
 std::string Scanner::nextStr(bool blank) {
-
     StringBuilder sb;
     char c = nextChar();
     if (c == '\n') c = nextChar(); // Clear first LF
     while (true) {
         sb.append(c);
         c = nextChar();
-        if (c == EOF || c == '\r' || c == '\n' || c == '\0') break;
-        if (blank && (c == ' ' || c == '\t')) break;
+        if (c == EOF || c == '\r' || c == '\n' || c == '\0') {
+            lineFinished = true;
+            break;
+        }
+        if (blank && (c == ' ' || c == '\t')) {
+            lineFinished = false;
+            break;
+        }
     }
     return sb.toString();
 }
@@ -41,4 +46,8 @@ int Scanner::nextInt() {
 
 std::string Scanner::readLine() {
     return nextStr(false);
+}
+
+bool Scanner::isLineFinished() {
+    return lineFinished;
 }

@@ -23,4 +23,6 @@ public:
     void close();
 
     InetAddress *getInetAddress();
+
+    InetAddress *getLocalAddress();
 };

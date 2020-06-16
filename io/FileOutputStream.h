@@ -8,4 +8,5 @@ public:
     FileOutputStream(std::string name);
     void write(int b);
     void write(const char* b,int offset, int len);
+    void close();
 };
