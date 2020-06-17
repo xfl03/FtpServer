@@ -7,7 +7,7 @@
 #include "FileHelper.h"
 #include "net/ServerSocket.h"
 
-class ControlChannel {
+class ServerControlChannel {
 private:
     Socket *socket;
     DataChannel *data;
@@ -19,11 +19,12 @@ private:
     int pasv_port;
     ServerSocket* pasv_socket;
 
-    std::string user;
+    std::string tmp;
+    bool logon;
 public:
     void run();
 
-    ControlChannel(Socket *socket, int pasv_port, std::string root);
+    ServerControlChannel(Socket *socket, std::string root);
 
     void onCommand(std::string cmd, std::string arg);
 

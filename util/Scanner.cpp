@@ -1,5 +1,5 @@
 #include "Scanner.h"
-#include <stdexcept>
+
 #include "StringBuilder.h"
 
 Scanner::Scanner(FileInputStream *is) {

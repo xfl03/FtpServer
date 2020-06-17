@@ -10,8 +10,10 @@ FileHelper::FileHelper(std::string root) {
 
 bool FileHelper::changeDir(std::string path) {
     std::string tmp;
-    if (path[0] == '/') {
+    if (path.starts_with('/')) {
         tmp = path;
+    } else if (dir.ends_with('/')) {
+        tmp = dir + path;
     } else {
         tmp = dir + "/" + path;
     }
@@ -48,7 +50,7 @@ std::string FileHelper::getRealPath() {
 }
 
 std::string FileHelper::getRealPath(std::string name) {
-    if (name[0] == '/') {
+    if (name.starts_with('/')) {
         return root + name;
     } else {
         return root + dir + "/" + name;
@@ -60,8 +62,10 @@ std::string FileHelper::getDisplayPath() {
 }
 
 std::string FileHelper::getDisplayPath(std::string name) {
-    if (name[0] == '/') {
+    if (name.starts_with('/')) {
         return name;
+    } else if (dir.ends_with('/')) {
+        return dir + name;
     } else {
         return dir + "/" + name;
     }

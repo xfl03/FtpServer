@@ -1,4 +1,4 @@
-#include "ControlChannel.h"
+#include "ServerControlChannel.h"
 #include <thread>
 #include <utility>
 #include <iostream>
@@ -9,19 +9,18 @@
 
 namespace fs = std::filesystem;
 
-ControlChannel::ControlChannel(Socket *socket, int pasv_port, std::string root) {
+ServerControlChannel::ServerControlChannel(Socket *socket, std::string root) {
     this->socket = socket;
     file = new FileHelper(root);
     sc = new Scanner(socket->getInputStream());
     wr = new PrintWriter(socket->getOutputStream());
-    this->pasv_port = pasv_port;
 
-    std::thread t(&ControlChannel::run, this);
+    std::thread t(&ServerControlChannel::run, this);
     t.detach();
 }
 
-void ControlChannel::run() {
-    std::cout << "\nControlChannel: run" << std::endl;
+void ServerControlChannel::run() {
+    std::cout << "\nServerControlChannel: run" << std::endl;
     sendResponse(220, "33's FTP Server");
     while (socket != nullptr) {
         std::string cmd = sc->next();
@@ -33,28 +32,41 @@ void ControlChannel::run() {
         } else {
             onCommand(cmd, sc->readLine());
         }
-        //std::cout << "ControlChannel: onCommand finish" << std::endl;
+        //std::cout << "ServerControlChannel: onCommand finish" << std::endl;
     }
-    std::cout << "ControlChannel: stop" << std::endl;
+    std::cout << "ServerControlChannel: stop" << std::endl;
 }
 
-void ControlChannel::onCommand(std::string cmd, std::string arg) {
+void ServerControlChannel::onCommand(std::string cmd, std::string arg) {
     std::cout << "onCommand: " << cmd << " " << arg << std::endl;
     std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
+
+    //Logon
     if (cmd == "user") {
-        user = std::move(arg);
-        sendResponse(331, "Password required for " + user);
-    } else if (cmd == "pass") {
-        if (user == USERNAME && arg == PASSWORD) {
+        tmp = std::move(arg);
+        sendResponse(331, "Password required for " + tmp);
+        return;
+    }
+    if (cmd == "pass") {
+        if (tmp == USERNAME && arg == PASSWORD) {
             sendResponse(230, "Logged on");
+            logon = true;
         } else {
             sendResponse(530, "Login or password incorrect!");
         }
-    } else if (cmd == "pwd") {
+        return;
+    }
+
+    //Logon check
+    if (!logon) {
+        sendResponse(530, "Password required");
+        return;
+    }
+    if (cmd == "pwd") {
         sendResponse(257, "\"" + file->getDisplayPath() + "\"");
     } else if (cmd == "type") {
         //TODO change type
-        sendResponse(200, "Type changed.");
+        sendResponse(200, "Type set to " + arg);
     } else if (cmd == "pasv") {
         pasvConnect();
     } else if (cmd == "port") {
@@ -106,22 +118,61 @@ void ControlChannel::onCommand(std::string cmd, std::string arg) {
             sendResponse(550, "File not found");
         } else {
             fs::remove(file->getRealPath(arg));
-            sendResponse(250, "Deleted");
+            sendResponse(250, "File deleted successfully");
         }
+    } else if (cmd == "rmd") {
+        auto status = fs::status(file->getRealPath(arg));
+        if (!fs::exists(status) || !fs::is_directory(status)) {
+            sendResponse(550, "Directory not found");
+        } else {
+            fs::remove_all(file->getRealPath(arg));
+            sendResponse(250, "Directory deleted successfully");
+        }
+    } else if (cmd == "noop") {
+        sendResponse(200, "OK");
+    } else if (cmd == "syst") {
+        sendResponse(215, "UNIX emulated by 33's FTP Server");
+    } else if (cmd == "rnfr") {
+        auto status = fs::status(file->getRealPath(arg));
+        if (!fs::exists(status)) {
+            sendResponse(550, "File not found");
+        } else {
+            tmp = arg;
+            sendResponse(350, "File exists, ready for destination name.");
+        }
+    } else if (cmd == "rnto") {
+        fs::rename(file->getRealPath(tmp), file->getRealPath(arg));
+        sendResponse(250, "file renamed successfully");
+    } else if (cmd == "mkd") {
+        fs::create_directories(file->getRealPath(arg));
+        sendResponse(257, "\"" + file->getDisplayPath(arg) + "\" created successfully");
     } else {
         sendResponse(502, "?");
     }
 }
 
-void ControlChannel::sendResponse(int code, std::string msg) {
+void ServerControlChannel::sendResponse(int code, std::string msg) {
     std::cout << "sendResponse: " << code << " " << msg << std::endl;
     wr->println(std::to_string(code) + " " + msg);
 }
 
-void ControlChannel::pasvConnect() {
+void ServerControlChannel::pasvConnect() {
     auto ip = socket->getLocalAddress()->address;
+
     if (pasv_socket == nullptr) {
-        pasv_socket = new ServerSocket(pasv_port);
+        pasv_port = rand() % 3975 + 1025;
+        //Port usage check
+        for (int i = 0; i < 3; ++i) {
+            try {
+                //Try to bind port
+                std::cout << "Try to bind " << pasv_port << std::endl;
+                pasv_socket = new ServerSocket(pasv_port);
+                break;
+            } catch (std::runtime_error &e) {
+                //When port has been used
+                pasv_port = rand() % 3975 + 1025;
+            }
+        }
     }
     unsigned int ips[4] = {ip >> 24, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff};
     std::cout << "Passive Mode: " << ips[3] << "." << ips[2] << "." << ips[1] << "." << ips[0]
@@ -138,7 +189,7 @@ void ControlChannel::pasvConnect() {
     std::cout << "Client connected in passive mode." << std::endl;
 }
 
-void ControlChannel::portConnect(std::string arg) {
+void ServerControlChannel::portConnect(std::string arg) {
     if (data != nullptr) {
         data->close();
         delete data;
@@ -170,7 +221,7 @@ void ControlChannel::portConnect(std::string arg) {
     sendResponse(200, "Port command successful");
 }
 
-void ControlChannel::close() {
+void ServerControlChannel::close() {
     if (socket != nullptr) {
         socket->close();
         delete socket;
@@ -179,7 +230,7 @@ void ControlChannel::close() {
     closePasv();
 }
 
-void ControlChannel::closePasv() {
+void ServerControlChannel::closePasv() {
     if (pasv_socket != nullptr) {
         pasv_socket->close();
         delete pasv_socket;
