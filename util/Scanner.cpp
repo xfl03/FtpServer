@@ -1,5 +1,5 @@
 #include "Scanner.h"
-
+#include <stdexcept>
 #include "StringBuilder.h"
 
 Scanner::Scanner(FileInputStream *is) {
@@ -14,6 +14,7 @@ char Scanner::nextChar() {
         size = is->read(buffer, 0, 233);
         pos = 0;
     }
+    if (size == 0) return EOF;
     return buffer[pos++];
 }
 
@@ -21,6 +22,7 @@ std::string Scanner::nextStr(bool blank) {
     StringBuilder sb;
     char c = nextChar();
     if (c == '\n') c = nextChar(); // Clear first LF
+    if (c == EOF) return "";
     while (true) {
         sb.append(c);
         c = nextChar();

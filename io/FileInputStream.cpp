@@ -18,8 +18,8 @@ FileInputStream::FileInputStream(std::string name) {
 }
 
 int FileInputStream::read() {
-    int *buffer = new int[1];
-    FIS::read0(fd, buffer, 1);
+    char *buffer = new char[1];
+    read(buffer,0, 1);
     return buffer[0];
 }
 

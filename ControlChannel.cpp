@@ -21,16 +21,21 @@ ControlChannel::ControlChannel(Socket *socket, int pasv_port, std::string root) 
 }
 
 void ControlChannel::run() {
-    std::cout << "ControlChannel: run" << std::endl;
+    std::cout << "\nControlChannel: run" << std::endl;
     sendResponse(220, "33's FTP Server");
     while (socket != nullptr) {
         std::string cmd = sc->next();
-        if (sc->isLineFinished()) {
+        if (cmd.empty()) {
+            std::cout << "Socket closed." << std::endl;
+            close();
+        } else if (sc->isLineFinished()) {
             onCommand(cmd, "");
         } else {
             onCommand(cmd, sc->readLine());
         }
+        //std::cout << "ControlChannel: onCommand finish" << std::endl;
     }
+    std::cout << "ControlChannel: stop" << std::endl;
 }
 
 void ControlChannel::onCommand(std::string cmd, std::string arg) {
@@ -166,10 +171,18 @@ void ControlChannel::portConnect(std::string arg) {
 }
 
 void ControlChannel::close() {
-    socket->close();
-    delete socket;
+    if (socket != nullptr) {
+        socket->close();
+        delete socket;
+        socket = nullptr;
+    }
+    closePasv();
+}
+
+void ControlChannel::closePasv() {
     if (pasv_socket != nullptr) {
         pasv_socket->close();
         delete pasv_socket;
+        pasv_socket = nullptr;
     }
 }

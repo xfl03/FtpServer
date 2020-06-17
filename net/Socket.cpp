@@ -43,6 +43,7 @@ FileOutputStream *Socket::getOutputStream() {
 }
 
 void Socket::close() {
+    shutdown(fd, SHUT_RDWR);
     close0(fd);
 }
 

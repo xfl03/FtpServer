@@ -30,5 +30,6 @@ Socket *ServerSocket::accept() {
 }
 
 void ServerSocket::close() {
+    shutdown(fd, SHUT_RDWR);
     close1(fd);
 }

@@ -1,6 +1,5 @@
 #include "DataChannel.h"
 #include "util/StringBuilder.h"
-#include <thread>
 #include <filesystem>
 #include <iostream>
 
@@ -36,9 +35,11 @@ void DataChannel::recvFile(std::string name) {
     char *buf = new char[333];
     while (true) {
         int len = is->read(buf, 0, 333);
+        //std::cout << len << std::endl;
         if (len <= 0) break;
         file->os->write(buf, 0, len);
     }
+    delete[] buf;
 
     file->postWrite();
 
@@ -50,11 +51,14 @@ void DataChannel::sendFile(std::string name) {
     file->preRead(name);
 
     char *buf = new char[333];
+
     while (true) {
         int len = file->is->read(buf, 0, 333);
+        //std::cout << len << std::endl;
         if (len <= 0) break;
         os->write(buf, 0, len);
     }
+    delete[] buf;
 
     file->postRead();
 

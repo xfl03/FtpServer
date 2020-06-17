@@ -34,4 +34,6 @@ public:
     void portConnect(std::string arg);
 
     void close();
+
+    void closePasv();
 };
