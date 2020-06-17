@@ -9,9 +9,9 @@
 
 namespace fs = std::filesystem;
 
-ControlChannel::ControlChannel(Socket *socket, int pasv_port) {
+ControlChannel::ControlChannel(Socket *socket, int pasv_port, std::string root) {
     this->socket = socket;
-    file = new FileHelper;
+    file = new FileHelper(root);
     sc = new Scanner(socket->getInputStream());
     wr = new PrintWriter(socket->getOutputStream());
     this->pasv_port = pasv_port;
@@ -46,7 +46,7 @@ void ControlChannel::onCommand(std::string cmd, std::string arg) {
             sendResponse(530, "Login or password incorrect!");
         }
     } else if (cmd == "pwd") {
-        sendResponse(257, "\"" + file->dir + "\"");
+        sendResponse(257, "\"" + file->getDisplayPath() + "\"");
     } else if (cmd == "type") {
         //TODO change type
         sendResponse(200, "Type changed.");
@@ -55,43 +55,54 @@ void ControlChannel::onCommand(std::string cmd, std::string arg) {
     } else if (cmd == "port") {
         portConnect(arg);
     } else if (cmd == "retr") {
-        sendResponse(150,
-                     "Opening data channel for file download from server of \"" + file->dir + "/" + arg + "\"");
-        data->sendFile(arg);
-        sendResponse(226,
-                     "Successfully transferred \"" + file->dir + "/" + arg + "\"");
-    } else if (cmd == "stor") {
-        sendResponse(150,
-                     "Opening data channel for file upload to server of \"" + file->dir + "/" + arg + "\"");
-        data->recvFile(arg);
-        sendResponse(226,
-                     "Successfully transferred \"" + file->dir + "/" + arg + "\"");
-    } else if (cmd == "quit") {
-        sendResponse(221, "Goodbye");
-        socket->close();
-        delete socket;
-        socket = nullptr;
-    } else if (cmd == "list" || cmd == "nlst") {
-        sendResponse(150,
-                     "Opening data channel for directory listing of \"" + file->dir + "\"");
-        data->sendList(cmd == "nlst");
-        sendResponse(226,
-                     "Successfully transferred \"" + file->dir + "\"");
-    } else if (cmd == "cwd") {
-        if (file->changeDir(arg)) {
-            sendResponse(250, "CWD successful. \"" + file->dir + "\" is current directory.");
-        } else {
-            sendResponse(550, "CWD failed. \"/" + arg + "\": directory not found.");
-        }
-    } else if (cmd == "size") {
-        auto status = fs::status("./" + arg);
+        auto status = fs::status(file->getRealPath(arg));
         if (!fs::exists(status) || fs::is_directory(status)) {
             sendResponse(550, "File not found");
         } else {
-            sendResponse(200, std::to_string(fs::file_size("./" + arg)));
+            sendResponse(150,
+                         "Opening data channel for file download from server of \"" + file->getDisplayPath(arg) + "\"");
+            data->sendFile(arg);
+            sendResponse(226,
+                         "Successfully transferred \"" + file->getDisplayPath(arg) + "\"");
+        }
+    } else if (cmd == "stor") {
+        sendResponse(150,
+                     "Opening data channel for file upload to server of \"" + file->getDisplayPath(arg) + "\"");
+        data->recvFile(arg);
+        sendResponse(226,
+                     "Successfully transferred \"" + file->getDisplayPath(arg) + "\"");
+    } else if (cmd == "quit") {
+        sendResponse(221, "Goodbye");
+        close();
+    } else if (cmd == "list" || cmd == "nlst") {
+        sendResponse(150,
+                     "Opening data channel for directory listing of \"" + file->getDisplayPath() + "\"");
+        data->sendList(cmd == "nlst");
+        sendResponse(226,
+                     "Successfully transferred \"" + file->getDisplayPath() + "\"");
+    } else if (cmd == "cwd") {
+        if (file->changeDir(arg)) {
+            sendResponse(250, "CWD successful. \"" + file->getDisplayPath() + "\" is current directory.");
+        } else {
+            sendResponse(550, "CWD failed. \"" + arg + "\": directory not found.");
+        }
+    } else if (cmd == "size") {
+        auto status = fs::status(file->getRealPath(arg));
+        if (!fs::exists(status) || fs::is_directory(status)) {
+            sendResponse(550, "File not found");
+        } else {
+            sendResponse(200, std::to_string(fs::file_size(file->getRealPath(arg))));
         }
     } else if (cmd == "opts") {
         sendResponse(202, "!");
+    } else if (cmd == "dele") {
+        auto status = fs::status(file->getRealPath(arg));
+        if (!fs::exists(status) || fs::is_directory(status)) {
+            sendResponse(550, "File not found");
+        } else {
+            fs::remove(file->getRealPath(arg));
+            sendResponse(250, "Deleted");
+        }
     } else {
         sendResponse(502, "?");
     }
@@ -108,13 +119,13 @@ void ControlChannel::pasvConnect() {
         pasv_socket = new ServerSocket(pasv_port);
     }
     unsigned int ips[4] = {ip >> 24, (ip >> 16) & 0xff, (ip >> 8) & 0xff, ip & 0xff};
-    std::cout << "Passive Mode: " << ips[0] << "." << ips[1] << "." << ips[2] << "." << ips[3]
+    std::cout << "Passive Mode: " << ips[3] << "." << ips[2] << "." << ips[1] << "." << ips[0]
               << ":" << pasv_port << std::endl;
     sendResponse(227, "(" +
-                      std::to_string(ips[0]) + "," +
-                      std::to_string(ips[1]) + "," +
-                      std::to_string(ips[2]) + "," +
                       std::to_string(ips[3]) + "," +
+                      std::to_string(ips[2]) + "," +
+                      std::to_string(ips[1]) + "," +
+                      std::to_string(ips[0]) + "," +
                       std::to_string(pasv_port >> 8) + "," +
                       std::to_string(pasv_port & 0xff) + ")");
     auto socket = pasv_socket->accept();
@@ -152,4 +163,13 @@ void ControlChannel::portConnect(std::string arg) {
     std::cout << "Active Mode: " << ip << ":" << port << std::endl;
     data = new DataChannel(new Socket(ip, port), file);
     sendResponse(200, "Port command successful");
+}
+
+void ControlChannel::close() {
+    socket->close();
+    delete socket;
+    if (pasv_socket != nullptr) {
+        pasv_socket->close();
+        delete pasv_socket;
+    }
 }

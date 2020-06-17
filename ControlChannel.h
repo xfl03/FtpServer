@@ -23,7 +23,7 @@ private:
 public:
     void run();
 
-    ControlChannel(Socket *socket, int pasv_port);
+    ControlChannel(Socket *socket, int pasv_port, std::string root);
 
     void onCommand(std::string cmd, std::string arg);
 
@@ -32,4 +32,6 @@ public:
     void pasvConnect();
 
     void portConnect(std::string arg);
+
+    void close();
 };

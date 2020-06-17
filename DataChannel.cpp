@@ -63,7 +63,7 @@ void DataChannel::sendFile(std::string name) {
 
 void DataChannel::sendList(bool name_only) {
     auto sb = new StringBuilder;
-    for (const auto &entry : std::filesystem::directory_iterator("./" + file->dir)) {
+    for (const auto &entry : std::filesystem::directory_iterator(file->getRealPath())) {
         if (name_only) {
             sb->append(entry.path().filename().string());
         } else {
