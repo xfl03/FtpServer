@@ -7,7 +7,7 @@ set(BASE_SOURCES net/Socket.h net/Socket.cpp net/ServerSocket.cpp net/ServerSock
 set(COMMON_SOURCES FileHelper.cpp FileHelper.h DataChannel.cpp DataChannel.h)
 
 add_executable(ftpd ${BASE_SOURCES} ${COMMON_SOURCES} FtpServer.cpp ServerControlChannel.cpp ServerControlChannel.h)
-add_executable(ftp ${BASE_SOURCES} ${COMMON_SOURCES})
+add_executable(ftp ${BASE_SOURCES} ${COMMON_SOURCES} ClientControlChannel.cpp ClientControlChannel.h FtpClient.cpp)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)

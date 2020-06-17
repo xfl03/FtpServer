@@ -27,10 +27,8 @@ void ServerControlChannel::run() {
         if (cmd.empty()) {
             std::cout << "Socket closed." << std::endl;
             close();
-        } else if (sc->isLineFinished()) {
-            onCommand(cmd, "");
         } else {
-            onCommand(cmd, sc->readLine());
+            onCommand(cmd, sc->isLineFinished() ? "" : sc->readLine());
         }
         //std::cout << "ServerControlChannel: onCommand finish" << std::endl;
     }
@@ -56,10 +54,15 @@ void ServerControlChannel::onCommand(std::string cmd, std::string arg) {
         }
         return;
     }
+    if (cmd == "quit") {
+        sendResponse(221, "Goodbye");
+        close();
+        return;
+    }
 
     //Logon check
     if (!logon) {
-        sendResponse(530, "Password required");
+        sendResponse(530, "Please log in with USER and PASS first.");
         return;
     }
     if (cmd == "pwd") {
@@ -88,9 +91,6 @@ void ServerControlChannel::onCommand(std::string cmd, std::string arg) {
         data->recvFile(arg);
         sendResponse(226,
                      "Successfully transferred \"" + file->getDisplayPath(arg) + "\"");
-    } else if (cmd == "quit") {
-        sendResponse(221, "Goodbye");
-        close();
     } else if (cmd == "list" || cmd == "nlst") {
         sendResponse(150,
                      "Opening data channel for directory listing of \"" + file->getDisplayPath() + "\"");
@@ -131,7 +131,7 @@ void ServerControlChannel::onCommand(std::string cmd, std::string arg) {
     } else if (cmd == "noop") {
         sendResponse(200, "OK");
     } else if (cmd == "syst") {
-        sendResponse(215, "UNIX emulated by 33's FTP Server");
+        sendResponse(215, "UNIX");
     } else if (cmd == "rnfr") {
         auto status = fs::status(file->getRealPath(arg));
         if (!fs::exists(status)) {
@@ -157,6 +157,11 @@ void ServerControlChannel::sendResponse(int code, std::string msg) {
 }
 
 void ServerControlChannel::pasvConnect() {
+    if (data != nullptr) {
+        data->close();
+        delete data;
+    }
+
     auto ip = socket->getLocalAddress()->address;
 
     if (pasv_socket == nullptr) {
@@ -194,6 +199,7 @@ void ServerControlChannel::portConnect(std::string arg) {
         data->close();
         delete data;
     }
+
     int t = 0;
     std::string ip;
     int port0 = 0;

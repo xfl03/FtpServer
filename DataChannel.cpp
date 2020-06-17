@@ -1,5 +1,6 @@
 #include "DataChannel.h"
 #include "util/StringBuilder.h"
+#include "util/Scanner.h"
 #include <filesystem>
 #include <iostream>
 
@@ -13,10 +14,18 @@ namespace DC {
     }
 
     std::string toTimeString(std::filesystem::file_time_type t) {
+        auto tt0 = time(NULL);
+        std::tm *gmt0 = std::gmtime(&tt0);
+
         std::time_t tt = to_time_t(t);
         std::tm *gmt = std::gmtime(&tt);
+
         std::stringstream buffer;
-        buffer << std::put_time(gmt, "%b %d %Y ");
+        if (gmt0->tm_year == gmt->tm_year) {
+            buffer << std::put_time(gmt, "%b %d %H:%M ");
+        } else {
+            buffer << std::put_time(gmt, "%b %d %Y ");
+        }
         return buffer.str();
     }
 }
@@ -72,12 +81,14 @@ void DataChannel::sendList(bool name_only) {
             sb->append(entry.path().filename().string());
         } else {
             if (entry.is_directory()) {
-                sb->append("drwxrwxrwx 1 ftp ftp 0 ")
+                sb->append("drwxrwxrwx 1 ftp ftp              0 ")
                         ->append(DC::toTimeString(entry.last_write_time()))
                         ->append(entry.path().filename().string());
             } else {
+                std::stringstream ss;
+                ss << std::setw(14) << std::setfill(' ') << std::right << entry.file_size();
                 sb->append("-rwxrwxrwx 1 ftp ftp ")
-                        ->append((int) entry.file_size())->append(" ")
+                        ->append(ss.str())->append(" ")
                         ->append(DC::toTimeString(entry.last_write_time()))
                         ->append(entry.path().filename().string());
             }
@@ -88,6 +99,18 @@ void DataChannel::sendList(bool name_only) {
     std::cout << "Send List:\r\n" << str;
     os->write(str.c_str(), 0, str.length());
 
+    close();
+}
+
+std::string DataChannel::recvList() {
+    auto sb = new StringBuilder;
+    Scanner *sc = new Scanner(is);
+    while (true) {
+        std::string tmp = sc->readLine();
+        if (tmp.empty()) break;
+        sb->append(tmp)->append("\n");
+    }
+    return sb->toString();
     close();
 }
 

@@ -14,5 +14,6 @@ public:
     void recvFile(std::string name);
     void sendFile(std::string name);
     void sendList(bool name_only);
+    std::string recvList();
     void close();
 };
