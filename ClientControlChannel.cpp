@@ -168,12 +168,10 @@ void ClientControlChannel::connect(std::string ip, int port) {
         wr = new PrintWriter(socket->getOutputStream());
         sc = new Scanner(socket->getInputStream());
 
-        auto res = readResponse();
-        printResponse(res);
-        if (res->first != 220) {
-            std::cout << "?" << std::endl;
-            return;
-        }
+        char *buffer = new char[333];
+        socket->getInputStream()->read(buffer, 0, 333);
+        std::cout << buffer;
+        std::cout.flush();
 
         doLogin(ip, "");
 
@@ -186,6 +184,7 @@ void ClientControlChannel::doLogin(std::string ip, std::string username) {
     std::string tmp = username;
     if (tmp.empty()) {
         std::cout << "Name (" << ip << "): ";
+        std::cout.flush();
         std::cin >> tmp;
     }
     sendRequest("USER", tmp);
@@ -249,7 +248,7 @@ void ClientControlChannel::dataConnect() {
             if (c == ',') {
                 if (t < 3) ip += ".";
                 t++;
-            } else {
+            } else if (c >= '0' && c <= '9') {
                 if (t < 4) {
                     ip += c;
                 } else if (t == 4) {
