@@ -108,7 +108,7 @@ void ServerControlChannel::onCommand(std::string cmd, std::string arg) {
         if (!fs::exists(status) || fs::is_directory(status)) {
             sendResponse(550, "File not found");
         } else {
-            sendResponse(200, std::to_string(fs::file_size(file->getRealPath(arg))));
+            sendResponse(213, std::to_string(fs::file_size(file->getRealPath(arg))));
         }
     } else if (cmd == "opts") {
         sendResponse(202, "!");
