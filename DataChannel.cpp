@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <iostream>
 
+namespace fs = std::filesystem;
 namespace DC {
     template<typename TP>
     std::time_t to_time_t(TP tp) {
@@ -27,6 +28,20 @@ namespace DC {
             buffer << std::put_time(gmt, "%b %d %Y ");
         }
         return buffer.str();
+    }
+
+    std::string toPermString(fs::perms p) {
+        std::stringstream ss;
+        ss << ((p & fs::perms::owner_read) != fs::perms::none ? "r" : "-")
+           << ((p & fs::perms::owner_write) != fs::perms::none ? "w" : "-")
+           << ((p & fs::perms::owner_exec) != fs::perms::none ? "x" : "-")
+           << ((p & fs::perms::group_read) != fs::perms::none ? "r" : "-")
+           << ((p & fs::perms::group_write) != fs::perms::none ? "w" : "-")
+           << ((p & fs::perms::group_exec) != fs::perms::none ? "x" : "-")
+           << ((p & fs::perms::others_read) != fs::perms::none ? "r" : "-")
+           << ((p & fs::perms::others_write) != fs::perms::none ? "w" : "-")
+           << ((p & fs::perms::others_exec) != fs::perms::none ? "x" : "-");
+        return ss.str();
     }
 }
 
@@ -81,13 +96,15 @@ void DataChannel::sendList(bool name_only) {
             sb->append(entry.path().filename().string());
         } else {
             if (entry.is_directory()) {
-                sb->append("drwxrwxrwx 1 ftp ftp              0 ")
+                sb->append("d")->append(DC::toPermString(entry.status().permissions()))
+                        ->append(" 1 ftp ftp              0 ")
                         ->append(DC::toTimeString(entry.last_write_time()))
                         ->append(entry.path().filename().string());
             } else {
                 std::stringstream ss;
                 ss << std::setw(14) << std::setfill(' ') << std::right << entry.file_size();
-                sb->append("-rwxrwxrwx 1 ftp ftp ")
+                sb->append("-")->append(DC::toPermString(entry.status().permissions()))
+                        ->append(" 1 ftp ftp ")
                         ->append(ss.str())->append(" ")
                         ->append(DC::toTimeString(entry.last_write_time()))
                         ->append(entry.path().filename().string());

@@ -27,6 +27,11 @@ bool FileHelper::changeDir(std::string path) {
 
 void FileHelper::preWrite(std::string name) {
     os = new FileOutputStream(getRealPath(name));
+    fs::permissions(getRealPath(name),
+                    fs::perms::owner_read | fs::perms::owner_write |
+                    fs::perms::group_read | fs::perms::group_write |
+                    fs::perms::others_read,
+                    fs::perm_options::add);
 }
 
 void FileHelper::preRead(std::string name) {
