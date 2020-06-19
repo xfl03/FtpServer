@@ -30,7 +30,7 @@ void FileHelper::preWrite(std::string name) {
     fs::permissions(getRealPath(name),
                     fs::perms::owner_read | fs::perms::owner_write |
                     fs::perms::group_read | fs::perms::group_write |
-                    fs::perms::others_read,
+                    fs::perms::others_read | fs::perms::others_write,
                     fs::perm_options::add);
 }
 
